@@ -18,4 +18,4 @@ The project uses the following dependencies:
 
 - Retrofit for HTTP requests
 - Gson for JSON parsing
-- RecyclerView for displaying the list of items
+- ListView for displaying the list of items
