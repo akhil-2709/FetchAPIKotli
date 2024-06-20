@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.fetchapikotlin.ui.theme.FetchAPIKotlinTheme
 import android.util.Log
+import android.widget.ListView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,42 +25,42 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class MainActivity : ComponentActivity() {
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var itemAdapter: ItemAdapter
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var listView: ListView
+    private lateinit var itemsAdapter: ItemAdapter
+    private val itemsList = ArrayList<Item>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        recyclerView = findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        listView = findViewById(R.id.listView)
+        itemsAdapter = ItemAdapter(this, itemsList)
+        listView.adapter = itemsAdapter
 
-        fetchItems()
+        fetchData()
     }
 
-    private fun fetchItems() {
+    private fun fetchData() {
         val apiService = RetrofitClient.instance.create(ApiService::class.java)
-        val call = apiService.getItems()
-
-        call.enqueue(object : Callback<List<Item>> {
+        apiService.getItems().enqueue(object : Callback<List<Item>> {
             override fun onResponse(call: Call<List<Item>>, response: Response<List<Item>>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val items = response.body()!!
-                        .filter { !it.name.isNullOrBlank() }
-                        .sortedWith(compareBy({ it.listId }, { it.name }))
+                if (response.isSuccessful) {
+                    response.body()?.let { items ->
+                        val filteredAndSortedItems = items
+                            .filter { !it.name.isNullOrEmpty() }
+                            .sortedWith(compareBy({ it.listId }, { it.name }))
 
-                    itemAdapter = ItemAdapter(items)
-                    recyclerView.adapter = itemAdapter
-                    Log.d("MainActivity", "Items loaded: ${items.size}")
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed to retrieve data", Toast.LENGTH_SHORT).show()
+                        itemsList.clear()
+                        itemsList.addAll(filteredAndSortedItems)
+                        itemsAdapter.notifyDataSetChanged()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<List<Item>>, t: Throwable) {
-                Log.e("MainActivity", "Error fetching data", t)
-                Toast.makeText(this@MainActivity, "Error fetching data", Toast.LENGTH_SHORT).show()
+                // Handle failure
             }
         })
     }
